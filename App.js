@@ -10,7 +10,7 @@ import './firebase'; // Import your Firebase configuration file
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase'; // Import Firebase auth instance
 
-// Import Screens
+// Import Screens i have a bonder
 import SignupEmailScreen from './screens/SignupEmailScreen';
 import SignupPasswordScreen from './screens/SignupPasswordScreen';
 import SignupNameScreen from './screens/SignupNameScreen';
