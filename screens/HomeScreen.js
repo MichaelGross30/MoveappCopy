@@ -1,20 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { getAuth } from 'firebase/auth';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+import app from '../firebase';
 
 const HomeScreen = ({ navigation }) => {
+  const [profilePicture, setProfilePicture] = useState(null);
+
+  // Initialize Firebase Auth and Storage
+  const auth = getAuth(app);
+  const storage = getStorage(app);
+
+  // Load the profile picture from Firebase Storage
+  useEffect(() => {
+    const loadProfilePicture = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const storageRef = ref(storage, `profilePictures/${user.uid}`);
+          const downloadURL = await getDownloadURL(storageRef);
+          setProfilePicture(downloadURL);
+        }
+      } catch (error) {
+        console.error('Error loading profile picture:', error);
+      }
+    };
+
+    loadProfilePicture();
+  }, []);
+
   return (
     <View style={styles.container}>
-      {/* Top Section */}
-      <View style={styles.topSection}>
+      {/* Top App Bar */}
+      <View style={styles.topAppBar}>
         <TouchableOpacity onPress={() => navigation.navigate('ChatList')}>
           <Image source={require('../assets/chat.png')} style={styles.icon} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('FriendRequestsScreen')}>
-          <Text>Friend Request Icon</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('MoveInvitationsScreen')}>
-          <Text>Move Invitation Icon</Text>
-        </TouchableOpacity>
+        <Text style={styles.appTitle}>MOVE</Text>
       </View>
 
       {/* Friends looking for a MOVE */}
@@ -44,7 +66,11 @@ const HomeScreen = ({ navigation }) => {
           <Image source={require('../assets/checkmark.png')} style={styles.icon} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('UserProfile')}>
-          <Image source={require('../assets/user.png')} style={styles.icon} />
+          {profilePicture ? (
+            <Image source={{ uri: profilePicture }} style={styles.profileIcon} />
+          ) : (
+            <Image source={require('../assets/user.png')} style={styles.icon} />
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -56,10 +82,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between', // Ensure bottom nav bar sticks to the bottom
   },
-  topSection: {
+  topAppBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  appTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'orange',
   },
   friendsSection: {
     padding: 16,
@@ -73,12 +108,17 @@ const styles = StyleSheet.create({
     padding: 10,
     borderTopWidth: 1,
     borderTopColor: '#ccc',
-    backgroundColor: '#fff', // Add background color for nav bar visibility
+    backgroundColor: '#fff',
   },
   icon: {
     width: 24,
     height: 24,
     tintColor: 'black', // Default color for inactive icons
+  },
+  profileIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
   sectionTitle: {
     fontSize: 18,
@@ -88,3 +128,4 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+

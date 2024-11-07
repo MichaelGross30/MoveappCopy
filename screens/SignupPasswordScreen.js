@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 
 const SignupPasswordScreen = ({ navigation, route }) => {
-  const { email } = route.params;
+  const { email } = route.params; // Email passed from SignupEmailScreen
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -14,7 +14,12 @@ const SignupPasswordScreen = ({ navigation, route }) => {
       setErrorMessage('Password must be at least 6 characters long.');
     } else {
       setErrorMessage('');
-      navigation.navigate('SignupName', { email, password });
+
+      // Navigate to the next screen with the email and password
+      navigation.navigate('SignupName', {
+        email,
+        password, // Pass the password to the next screen
+      });
     }
   };
 
@@ -42,3 +47,5 @@ const styles = StyleSheet.create({
 });
 
 export default SignupPasswordScreen;
+
+

@@ -1,20 +1,44 @@
-// /screens/SignupPhoneScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { getAuth } from 'firebase/auth'; // Import Firebase Auth
+import { getFirestore, doc, updateDoc } from 'firebase/firestore'; // Import Firestore
+import app from '../firebase'; // Import your Firebase setup
 
 const SignupPhoneScreen = ({ navigation, route }) => {
   const { email, password, name, username } = route.params;
   const [phoneNumber, setPhoneNumber] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleNext = () => {
+  // Initialize Firebase Auth and Firestore
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const handleNext = async () => {
     if (!phoneNumber) {
       setErrorMessage('Phone number is required.');
+      return; // Prevent proceeding if phone number is empty
     } else if (!/^\d{10}$/.test(phoneNumber)) {
       setErrorMessage('Phone number must be 10 digits.');
+      return; // Prevent proceeding if phone number is invalid
+    }
+
+    setErrorMessage('');
+
+    // Get the current authenticated user
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        // Update the user's Firestore document with the phone number
+        await updateDoc(doc(db, 'users', user.uid), { phoneNumber });
+
+        // Navigate to the next screen
+        navigation.navigate('SignupDOB', { email, password, name, username, phoneNumber });
+      } catch (error) {
+        console.error('Error saving phone number:', error);
+        setErrorMessage('Failed to save your phone number. Please try again.');
+      }
     } else {
-      setErrorMessage('');
-      navigation.navigate('SignupDOB', { email, password, name, username, phoneNumber });
+      setErrorMessage('No authenticated user found.');
     }
   };
 
@@ -42,3 +66,6 @@ const styles = StyleSheet.create({
 });
 
 export default SignupPhoneScreen;
+
+
+

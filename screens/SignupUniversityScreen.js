@@ -1,25 +1,40 @@
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { doc, setDoc } from 'firebase/firestore'; // Import Firestore methods
+import { auth, db } from '../firebase'; // Import your auth and db instances
 
 const SignupUniversityScreen = ({ navigation, route }) => {
   const { email, password, name, username, phoneNumber, dateOfBirth, bio, profilePicture } = route.params;
   const [university, setUniversity] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleNext = () => {
-    // Allowing navigation without a university selection
-    navigation.navigate('MainApp', { 
-      email, 
-      password, 
-      name, 
-      username, 
-      phoneNumber, 
-      dateOfBirth, 
-      bio, 
-      profilePicture, 
-      university // This will be empty if no university is selected
-    });
+  const handleNext = async () => {
+    try {
+      // Store additional user information in Firestore
+      const userRef = doc(db, 'users', auth.currentUser.uid); // Reference to the user's document
+      await setDoc(
+        userRef,
+        { university },
+        { merge: true } // Use merge to add the university without overwriting existing data
+      );
+
+      // Navigate to the main app's Home screen
+      navigation.navigate('Home', {
+        email,
+        password,
+        name,
+        username,
+        phoneNumber,
+        dateOfBirth,
+        bio,
+        profilePicture,
+        university,
+      });
+    } catch (error) {
+      // Handle errors (e.g., display error message)
+      setErrorMessage(error.message);
+    }
   };
 
   return (
@@ -49,5 +64,7 @@ const styles = StyleSheet.create({
 });
 
 export default SignupUniversityScreen;
+
+
 
 
