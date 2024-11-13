@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { getAuth } from 'firebase/auth'; // Import Firebase Auth
 import { getFirestore, doc, setDoc } from 'firebase/firestore'; // Import Firestore
-import app from '../firebase'; // Import your Firebase setup
+import app from '../../firebase'; // Import your Firebase setup
 
 const SignupNameScreen = ({ navigation, route }) => {
   const { email } = route.params; // Get the email passed from the previous screen

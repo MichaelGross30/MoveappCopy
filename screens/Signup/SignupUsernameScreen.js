@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { getAuth } from 'firebase/auth'; // Import Firebase Auth
 import { getFirestore, doc, updateDoc } from 'firebase/firestore'; // Import Firestore
-import app from '../firebase'; // Import your Firebase setup
+import app from '../../firebase'; // Import your Firebase setup
 
 const SignupUsernameScreen = ({ navigation, route }) => {
   const { email, password, name } = route.params;

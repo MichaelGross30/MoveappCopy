@@ -1,97 +1,192 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  View,
+  TouchableOpacity,
+  Image,
+  Text,
+} from 'react-native';
+import FeatherIcon from 'react-native-vector-icons/Feather';
+import { useNavigation } from '@react-navigation/native';
+// import { getFirestore, collection, getDocs } from 'firebase/firestore';
+// import { getAuth } from 'firebase/auth';
 
-// Sample chat data for demonstration
-const chatData = [
-  { id: '1', name: 'John Doe', lastMessage: 'Hey, how are you?' },
-  { id: '2', name: 'Jane Smith', lastMessage: 'Let’s meet up later!' },
-  { id: '3', name: 'Alice Johnson', lastMessage: 'Did you finish the project?' },
-  // Add more chat data as needed
-];
+const ChatListScreen = () => {
+  const navigation = useNavigation();
+  const [chats, setChats] = useState([]);
 
-const ChatListScreen = ({ navigation }) => {
-  const renderChatItem = ({ item }) => (
-    <View style={styles.chatItem}>
-      <Text style={styles.chatName}>{item.name}</Text>
-      <Text style={styles.lastMessage}>{item.lastMessage}</Text>
-    </View>
-  );
+  // Sample chat data (Replace this with Firebase data later)
+  const sampleChats = [
+    {
+      id: '1',
+      profileImg: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d',
+      name: 'Nick Miller',
+      lastMessage: 'Looking forward to our collaboration!',
+    },
+    {
+      id: '2',
+      profileImg: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb',
+      name: 'Ashley',
+      lastMessage: 'Amazing!! 🔥🔥🔥',
+    },
+    {
+      id: '3',
+      profileImg: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128',
+      name: 'Max',
+      lastMessage: 'Appreciate the opportunity to connect and share insights.',
+    },
+    {
+      id: '4',
+      profileImg: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2',
+      name: 'Schmidt',
+      lastMessage: "Let's bring creativity to the forefront of our discussions.",
+    },
+    {
+      id: '5',
+      profileImg: 'https://images.unsplash.com/photo-1553240799-36bbf332a5c3',
+      name: 'Dwight',
+      lastMessage: 'Excited to explore opportunities for collaboration.',
+    },
+  ];
+
+  // Set the sample data
+  useEffect(() => {
+    setChats(sampleChats);
+
+    // Firebase setup (Uncomment this section when ready to integrate Firebase)
+    /*
+    const db = getFirestore();
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+
+    const fetchChats = async () => {
+      try {
+        const chatsSnapshot = await getDocs(collection(db, 'chats'));
+        const chatData = chatsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setChats(chatData);
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+      }
+    };
+
+    fetchChats();
+    */
+  }, []);
 
   return (
-    <View style={styles.container}>
-      {/* Top Bar with Back Button and New Chat Icon */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Image source={require('../assets/back.png')} style={styles.backIcon} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Chat List</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('NewChat')}>
-          <Image source={require('../assets/newchat.png')} style={styles.newChatIcon} />
-        </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View style={styles.headerAction} />
+          <View style={styles.headerAction}>
+            <TouchableOpacity onPress={() => navigation.navigate('NewChatScreen')}>
+              <FeatherIcon color="#266EF1" name="edit" size={21} />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <Text style={styles.headerTitle}>Messages</Text>
       </View>
 
       {/* Chat List */}
-      <FlatList
-        data={chatData}
-        renderItem={renderChatItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.chatList}
-        showsVerticalScrollIndicator={false}
-      />
-    </View>
+      <ScrollView>
+        {chats.map(({ id, name, lastMessage, profileImg }) => (
+          <View key={id} style={styles.cardWrapper}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ConversationScreen', { chatId: id })}
+              style={styles.card}
+            >
+              <Image
+                alt=""
+                resizeMode="cover"
+                source={{ uri: profileImg }}
+                style={styles.cardImg}
+              />
+              <View style={styles.cardBody}>
+                <Text style={styles.cardTitle}>{name}</Text>
+                <Text ellipsizeMode="tail" numberOfLines={1} style={styles.cardContent}>
+                  {lastMessage}
+                </Text>
+              </View>
+              <View style={styles.cardIcon}>
+                <FeatherIcon color="#ccc" name="chevron-right" size={20} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
+export default ChatListScreen;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  header: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
-  topBar: {
+  headerTop: {
+    marginHorizontal: -6,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f8f8f8',
-    elevation: 3,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1, // Ensure it stays above other content
+    justifyContent: 'space-between',
   },
-  backIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 16,
+  headerAction: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  newChatIcon: {
-    width: 24,
-    height: 24,
-    marginLeft: 'auto', // Push the new chat icon to the right
+  headerTitle: {
+    fontSize: 35,
+    fontWeight: '700',
+    color: '#1d1d1d',
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    flex: 1, // This allows the title to take available space
-    textAlign: 'center', // Center the title
-  },
-  chatList: {
-    paddingTop: 64, // Space for the top bar
-    paddingBottom: 16,
-  },
-  chatItem: {
-    padding: 16,
+  cardWrapper: {
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderColor: '#DFDFE0',
+    marginLeft: 16,
   },
-  chatName: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  card: {
+    height: 66,
+    paddingRight: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
-  lastMessage: {
-    fontSize: 14,
-    color: '#757575',
+  cardImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 9999,
+    marginRight: 12,
+  },
+  cardBody: {
+    maxWidth: '100%',
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1d1d1d',
+  },
+  cardContent: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#737987',
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  cardIcon: {
+    alignSelf: 'flex-start',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
   },
 });
-
-export default ChatListScreen;

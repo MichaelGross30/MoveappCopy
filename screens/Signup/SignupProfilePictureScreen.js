@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
-import app from '../firebase';
+import app from '../../firebase';
 
 const SignupProfilePictureScreen = ({ navigation, route }) => {
   const { email, password, name, username, phoneNumber, dateOfBirth, bio } = route.params;

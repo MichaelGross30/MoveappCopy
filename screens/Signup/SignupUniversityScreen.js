@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { doc, setDoc } from 'firebase/firestore'; // Import Firestore methods
-import { auth, db } from '../firebase'; // Import your auth and db instances
+import { auth, db } from '../../firebase'; // Import your auth and db instances
 
 const SignupUniversityScreen = ({ navigation, route }) => {
   const { email, password, name, username, phoneNumber, dateOfBirth, bio, profilePicture } = route.params;

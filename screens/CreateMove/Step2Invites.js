@@ -1,59 +1,66 @@
-// Step2Invites.js
-import React, { useState } from 'react';
-import { View, Text, Button, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, StyleSheet, FlatList, CheckBox } from 'react-native';
 
-const friendsList = [
-  { id: '1', name: 'Friend One' },
-  { id: '2', name: 'Friend Two' },
-  { id: '3', name: 'Group: Soccer Club' },
-  { id: '4', name: 'Group: Study Group' },
-  // Add more friends and groups as needed
-];
+// Import the useMoveDetails hook to access the context
+import { useMoveDetails } from './MoveDetailsContext';
 
-const Step2Invites = ({ nextStep, prevStep, updateMoveDetails, moveDetails }) => {
-  const [selectedInvites, setSelectedInvites] = useState(moveDetails.invitedUsers || []);
+const Step2Invites = ({ nextStep, prevStep, friendsList }) => {
+  const [selectedFriends, setSelectedFriends] = useState([]);
+  
+  // Access moveDetails and updateMoveDetails from context
+  const { moveDetails, updateMoveDetails } = useMoveDetails();
 
-  const toggleInvite = (id) => {
-    setSelectedInvites((prevSelected) =>
-      prevSelected.includes(id) ? prevSelected.filter((userId) => userId !== id) : [...prevSelected, id]
-    );
+  useEffect(() => {
+    // Update selected friends when moveDetails is updated
+    setSelectedFriends(moveDetails.invitedUsers);
+  }, [moveDetails]);
+
+  const handleFriendSelection = (friendId) => {
+    // Toggle selection of friend
+    setSelectedFriends((prev) => {
+      if (prev.includes(friendId)) {
+        return prev.filter((id) => id !== friendId);
+      } else {
+        return [...prev, friendId];
+      }
+    });
   };
 
+  // Save the selected friends to moveDetails when moving to the next step
   const handleNext = () => {
-    updateMoveDetails('invitedUsers', selectedInvites);
+    updateMoveDetails('invitedUsers', selectedFriends);
     nextStep();
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Step 2: Invite Friends/Groups</Text>
-      
+      <Text style={styles.title}>Step 2: Select Friends to Invite</Text>
       <FlatList
         data={friendsList}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.friendItem, selectedInvites.includes(item.id) && styles.selectedItem]}
-            onPress={() => toggleInvite(item.id)}
-          >
+          <View style={styles.friendItem}>
             <Text style={styles.friendName}>{item.name}</Text>
-          </TouchableOpacity>
+            <CheckBox
+              value={selectedFriends.includes(item.id)}
+              onValueChange={() => handleFriendSelection(item.id)}
+            />
+          </View>
         )}
       />
-
-      <Button title="Previous" onPress={prevStep} />
+      <Button title="Back" onPress={prevStep} />
       <Button title="Next" onPress={handleNext} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1, padding: 16, justifyContent: 'center' },
   title: { fontSize: 24, marginBottom: 16 },
-  friendItem: { padding: 10, borderWidth: 1, borderRadius: 5, marginVertical: 5 },
-  selectedItem: { backgroundColor: '#ddd' },
+  friendItem: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 8 },
   friendName: { fontSize: 18 },
 });
 
 export default Step2Invites;
+
 

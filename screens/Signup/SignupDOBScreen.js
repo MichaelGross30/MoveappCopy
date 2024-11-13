@@ -3,7 +3,7 @@ import { View, Text, Button, StyleSheet } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { getAuth } from 'firebase/auth'; 
 import { getFirestore, doc, updateDoc } from 'firebase/firestore'; 
-import app from '../firebase'; 
+import app from '../../firebase'; 
 import moment from 'moment';
 
 const SignupDOBScreen = ({ navigation, route }) => {
