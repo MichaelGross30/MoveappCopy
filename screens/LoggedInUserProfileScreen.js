@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, ScrollView } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
-// import messaging from '@react-native-firebase/messaging'; // Commented out since it's not needed for testing
+import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 const LoggedInUserProfileScreen = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lookingForMove, setLookingForMove] = useState(false);
+  const [photos, setPhotos] = useState([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -35,6 +35,14 @@ const LoggedInUserProfileScreen = () => {
     };
 
     fetchUserData();
+
+    // Mock data for the photo gallery (replace with your actual data later)
+    setPhotos([
+      { id: '1', uri: 'https://via.placeholder.com/150' },
+      { id: '2', uri: 'https://via.placeholder.com/150' },
+      { id: '3', uri: 'https://via.placeholder.com/150' },
+      { id: '4', uri: 'https://via.placeholder.com/150' },
+    ]);
   }, []);
 
   const toggleLookingForMove = () => {
@@ -42,83 +50,17 @@ const LoggedInUserProfileScreen = () => {
     setLookingForMove(newStatus);
 
     if (newStatus) {
-      // Set status to "Looking for MOVE" and notify friends
       console.log(`${user.username} is Looking for a MOVE`);
-      // sendNotificationToFriends(); // Commented out for testing
-
-      // Set a timeout to automatically turn off the status after 4 hours
       setTimeout(() => {
         setLookingForMove(false);
-        console.log(`${user.username} is no longer Looking for a MOVE (timeout)`);
-        // Update the status in Firestore if needed
         updateMoveStatusInFirestore(false);
-      }, 4 * 60 * 60 * 1000); // 4 hours in milliseconds
-
-      // Update the status in Firestore
+      }, 4 * 60 * 60 * 1000);
       updateMoveStatusInFirestore(true);
     } else {
-      // Turn off the "Looking for MOVE" status
       console.log(`${user.username} is no longer Looking for a MOVE`);
       updateMoveStatusInFirestore(false);
     }
   };
-
-  // Commenting out notification functions for testing
-  /*
-  const sendNotificationToFriends = async () => {
-    try {
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-      const db = getFirestore();
-
-      if (currentUser) {
-        const friendsSnapshot = await getDocs(collection(db, 'users', currentUser.uid, 'friends'));
-        const friendTokens = [];
-
-        friendsSnapshot.forEach((friendDoc) => {
-          const friendData = friendDoc.data();
-          if (friendData.fcmToken) {
-            friendTokens.push(friendData.fcmToken); // Assuming the token is stored in each friend's document
-          }
-        });
-
-        // Send notifications to all friends
-        for (const token of friendTokens) {
-          await sendNotification(token, `${user.username} is looking for a MOVE!`);
-        }
-      }
-    } catch (error) {
-      console.error('Error sending notifications to friends:', error);
-    }
-  };
-
-  const sendNotification = async (token, message) => {
-    try {
-      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'key=BFBdS1yrHsAo4fUMNITrHYHYGFbEq_9aro9dv9oQZIO_cmUdEhW02jYmFM2kv9uvZv1YuXvWsWnjBBOPRvCZ5bs', // Replace with your FCM server key
-        },
-        body: JSON.stringify({
-          to: token,
-          notification: {
-            title: 'MOVE Alert!',
-            body: message,
-          },
-        }),
-      });
-
-      if (response.ok) {
-        console.log('Notification sent successfully to', token);
-      } else {
-        console.error('Failed to send notification:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
-  };
-  */
 
   const updateMoveStatusInFirestore = async (status) => {
     try {
@@ -134,7 +76,10 @@ const LoggedInUserProfileScreen = () => {
     }
   };
 
-  // Show loading state
+  const renderPhoto = ({ item }) => (
+    <Image source={{ uri: item.uri }} style={styles.galleryImage} />
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -143,7 +88,6 @@ const LoggedInUserProfileScreen = () => {
     );
   }
 
-  // If user data is still not available
   if (!user) {
     return (
       <View style={styles.loadingContainer}>
@@ -153,7 +97,7 @@ const LoggedInUserProfileScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       {/* User Profile Information */}
       <View style={styles.profileContainer}>
         <Image source={{ uri: user.profilePicture }} style={styles.profilePicture} />
@@ -167,7 +111,7 @@ const LoggedInUserProfileScreen = () => {
       <Text style={styles.userUniversity}>{user.university}</Text>
       <Text style={styles.userBio}>{user.bio}</Text>
 
-      {/* "LOOKING FOR MOVE" and "Turn Off" buttons */}
+      {/* "LOOKING FOR MOVE" Button */}
       <TouchableOpacity
         style={lookingForMove ? styles.turnOffButton : styles.lookingForMoveButton}
         onPress={toggleLookingForMove}
@@ -176,21 +120,30 @@ const LoggedInUserProfileScreen = () => {
           {lookingForMove ? 'Stop Looking for MOVE' : 'LOOKING FOR MOVE'}
         </Text>
       </TouchableOpacity>
-    </View>
+
+      {/* Photo Gallery Section */}
+      <Text style={styles.galleryTitle}>Pictures from Previous MOVES</Text>
+      <FlatList
+        data={photos}
+        renderItem={renderPhoto}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.galleryContainer}
+      />
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#fff',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   profileContainer: {
     flexDirection: 'row',
@@ -201,10 +154,12 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
+    marginTop: 65,
   },
   friendsCountContainer: {
-    marginLeft: 20,
+    marginLeft: 90,
     alignItems: 'center',
+    marginTop: 90,
   },
   friendsCount: {
     fontSize: 20,
@@ -251,9 +206,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  galleryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  galleryContainer: {
+    paddingLeft: 6,
+  },
+  galleryImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 10,
+    marginRight: 10,
+  },
 });
 
 export default LoggedInUserProfileScreen;
+
 
 
 

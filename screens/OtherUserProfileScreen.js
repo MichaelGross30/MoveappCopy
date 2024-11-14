@@ -1,202 +1,272 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../firebase';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
-const OtherUserProfileScreen = ({ route, navigation }) => {
-  const { userId, userData } = route.params || {}; // Fallback to empty object
-  const [otherUser, setOtherUser] = useState(userData || {}); // Default to empty object
+const OtherUserProfileScreen = () => {
+  const [userData, setUserData] = useState(null);
   const [isFriend, setIsFriend] = useState(false);
-  const [friendRequestPending, setFriendRequestPending] = useState(false);
-  const [currentUserFriends, setCurrentUserFriends] = useState([]);
+  const [requestSent, setRequestSent] = useState(false);
+  const [notificationsHidden, setNotificationsHidden] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { user } = route.params;
+
+  // Fetch detailed user data from Firebase
   const fetchUserData = async () => {
-    if (userData) return; // Skip if userData is already available
     try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
+      const userDoc = await getDoc(doc(db, 'users', user.id));
       if (userDoc.exists()) {
-        setOtherUser({ id: userDoc.id, ...userDoc.data() });
-      } else {
-        console.log('User not found');
-        setOtherUser({});
+        setUserData(userDoc.data());
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchCurrentUserFriends = async () => {
-    const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-    const currentUserData = currentUserDoc.data();
-    setCurrentUserFriends(currentUserData.friends || []);
-  };
+  // Fetch current user's friend status
+  const checkFriendStatus = async () => {
+    try {
+      const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      const currentUserData = currentUserDoc.data();
 
-  useEffect(() => {
-    fetchUserData();
-    fetchCurrentUserFriends();
-  }, []);
-
-  useEffect(() => {
-    if (otherUser) {
-      setIsFriend(currentUserFriends.includes(userId));
-      setFriendRequestPending(currentUserFriends.includes(`pending_${userId}`));
+      const isFriend = currentUserData.friends?.includes(user.id);
+      const requestSent = currentUserData.friends?.includes(`pending_${user.id}`);
+      setIsFriend(isFriend);
+      setRequestSent(requestSent);
+    } catch (error) {
+      console.error('Error checking friend status:', error);
     }
-  }, [otherUser, currentUserFriends]);
+  };
 
   const handleAddFriend = async () => {
     try {
       const currentUserRef = doc(db, 'users', auth.currentUser.uid);
-      const otherUserRef = doc(db, 'users', userId);
+      const otherUserRef = doc(db, 'users', user.id);
 
-      await updateDoc(currentUserRef, {
-        friends: arrayUnion(`pending_${userId}`),
-      });
-
-      await updateDoc(otherUserRef, {
-        friendRequests: arrayUnion(auth.currentUser.uid),
-      });
-
-      setFriendRequestPending(true);
+      if (requestSent) {
+        // Unsend friend request
+        await updateDoc(currentUserRef, {
+          friends: arrayRemove(`pending_${user.id}`)
+        });
+        await updateDoc(otherUserRef, {
+          friendRequests: arrayRemove(auth.currentUser.uid)
+        });
+        setRequestSent(false);
+      } else {
+        // Send friend request
+        await updateDoc(currentUserRef, {
+          friends: arrayUnion(`pending_${user.id}`)
+        });
+        await updateDoc(otherUserRef, {
+          friendRequests: arrayUnion(auth.currentUser.uid)
+        });
+        setRequestSent(true);
+      }
     } catch (error) {
       console.error('Error sending friend request:', error);
     }
   };
 
-  const handleCancelFriendRequest = async () => {
-    try {
-      const currentUserRef = doc(db, 'users', auth.currentUser.uid);
-      const otherUserRef = doc(db, 'users', userId);
-
-      await updateDoc(currentUserRef, {
-        friends: arrayRemove(`pending_${userId}`),
-      });
-
-      await updateDoc(otherUserRef, {
-        friendRequests: arrayRemove(auth.currentUser.uid),
-      });
-
-      setFriendRequestPending(false);
-    } catch (error) {
-      console.error('Error cancelling friend request:', error);
-    }
-  };
-
   const handleRemoveFriend = async () => {
-    Alert.alert('Confirm', 'Are you sure you want to remove this friend?', [
+    Alert.alert('Remove Friend', 'Are you sure you want to remove this friend?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'OK',
+        text: 'Confirm',
         onPress: async () => {
           try {
             const currentUserRef = doc(db, 'users', auth.currentUser.uid);
-            const otherUserRef = doc(db, 'users', userId);
-
             await updateDoc(currentUserRef, {
-              friends: arrayRemove(userId),
+              friends: arrayRemove(user.id)
             });
-
-            await updateDoc(otherUserRef, {
-              friends: arrayRemove(auth.currentUser.uid),
-            });
-
             setIsFriend(false);
           } catch (error) {
             console.error('Error removing friend:', error);
           }
-        },
-      },
+        }
+      }
     ]);
   };
 
-  const handleChatPress = () => {
-    navigation.navigate('Chat', { userId });
-  };
+  useEffect(() => {
+    fetchUserData();
+    checkFriendStatus();
+  }, []);
 
-  const handleHideNotifications = () => {
-    // Placeholder for hiding notifications
-  };
+  if (loading) {
+    return <ActivityIndicator size="large" color="#FFA500" style={{ flex: 1 }} />;
+  }
+
+  if (!userData) {
+    return (
+      <View style={styles.container}>
+        <Text>User not found</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {otherUser ? (
-        <>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.backButton}>Back</Text>
-            </TouchableOpacity>
-            <View style={styles.rightIcons}>
-              <TouchableOpacity onPress={handleChatPress}>
-                <Text style={styles.icon}>💬</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleHideNotifications}>
-                <Text style={styles.icon}>🔕</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <Image source={{ uri: otherUser.profilePicture || 'default-image-url' }} style={styles.profilePicture} />
-          <Text style={styles.userName}>{otherUser.name}</Text>
-          <Text style={styles.userBio}>{otherUser.bio}</Text>
-          <Text style={styles.userUniversity}>{otherUser.university}</Text>
+      {/* Top Navigation Bar */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
+        <View style={styles.rightIcons}>
+          <TouchableOpacity onPress={() => setNotificationsHidden(!notificationsHidden)}>
+            <Ionicons name={notificationsHidden ? 'notifications-off' : 'notifications'} size={24} color="black" style={styles.iconSpacing} />
+          </TouchableOpacity>
+          <TouchableOpacity>
+            <Ionicons name="chatbubble" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
+      </View>
 
-          <View style={styles.buttons}>
-            {isFriend ? (
-              <TouchableOpacity onPress={handleRemoveFriend} style={styles.removeButton}>
-                <Text style={styles.buttonText}>Remove Friend</Text>
-              </TouchableOpacity>
-            ) : (
-              <>
-                {!friendRequestPending ? (
-                  <TouchableOpacity onPress={handleAddFriend} style={styles.addButton}>
-                    <Text style={styles.buttonText}>Add Friend</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity onPress={handleCancelFriendRequest} style={styles.cancelButton}>
-                    <Text style={styles.buttonText}>Cancel Request</Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </View>
+      {/* Profile Header */}
+      <View style={styles.profileHeader}>
+        <Image source={{ uri: userData.profilePicture || 'https://via.placeholder.com/100' }} style={styles.profileImage} />
+        <Text style={styles.username}>{userData.username}</Text>
+        <Text style={styles.university}>{userData.university}</Text>
+        <Text style={styles.description}>{userData.description || 'Looking for a Move'}</Text>
+      </View>
 
-          <Text style={styles.bookmarkedTitle}>Bookmarked Posts</Text>
-          <FlatList
-            data={otherUser.bookmarkedPosts || []}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Image source={{ uri: item.imageUrl }} style={styles.bookmarkedImage} />
-            )}
-            ListEmptyComponent={<Text>No bookmarked posts</Text>}
-          />
-        </>
+      {/* Friend Button Section */}
+      {!isFriend ? (
+        <TouchableOpacity
+          style={requestSent ? styles.pendingButton : styles.addFriendButton}
+          onPress={handleAddFriend}
+        >
+          <Text style={requestSent ? styles.pendingText : styles.addFriendText}>
+            {requestSent ? 'Pending' : 'Add Friend'}
+          </Text>
+        </TouchableOpacity>
       ) : (
-        <Text>Loading...</Text>
+        <TouchableOpacity style={styles.removeFriendButton} onPress={handleRemoveFriend}>
+          <Text style={styles.removeFriendText}>Remove Friend</Text>
+        </TouchableOpacity>
       )}
+
+      {/* Bookmarked Pictures Section */}
+      <ScrollView contentContainerStyle={styles.bookmarkContainer}>
+        <Text style={styles.bookmarkTitle}>Bookmarked Pictures</Text>
+        <View style={styles.imagesRow}>
+          {userData.bookmarkedPhotos?.map((uri, index) => (
+            <Image key={index} source={{ uri }} style={styles.bookmarkImage} />
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: { flexDirection: 'row', justifyContent: 'space-between' },
-  backButton: { fontSize: 16 },
-  rightIcons: { flexDirection: 'row' },
-  icon: { marginLeft: 10, fontSize: 20 },
-  profilePicture: { width: 100, height: 100, borderRadius: 50, marginBottom: 10 },
-  userName: { fontSize: 24, fontWeight: 'bold' },
-  userBio: { fontSize: 16, marginTop: 4 },
-  userUniversity: { fontSize: 16, color: 'blue', marginTop: 4 },
-  buttons: { flexDirection: 'row', marginTop: 10 },
-  addButton: { backgroundColor: 'green', padding: 10, borderRadius: 5 },
-  removeButton: { backgroundColor: 'red', padding: 10, borderRadius: 5 },
-  cancelButton: { backgroundColor: 'gray', padding: 10, borderRadius: 5 },
-  buttonText: { color: 'white' },
-  bookmarkedTitle: { fontSize: 18, marginTop: 20, fontWeight: 'bold' },
-  bookmarkedImage: { width: 100, height: 100, marginRight: 10 },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 20,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  rightIcons: {
+    flexDirection: 'row',
+  },
+  iconSpacing: {
+    marginLeft: 15,
+  },
+  profileHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 10,
+  },
+  username: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  university: {
+    fontSize: 16,
+    color: '#007BFF',
+    marginBottom: 5,
+  },
+  description: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  addFriendButton: {
+    backgroundColor: '#FFA500',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addFriendText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  pendingButton: {
+    backgroundColor: '#CCCCCC',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  pendingText: {
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  removeFriendButton: {
+    backgroundColor: '#FF0000',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  removeFriendText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  bookmarkContainer: {
+    marginTop: 20,
+  },
+  bookmarkTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  imagesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  bookmarkImage: {
+    width: '30%',
+    height: 100,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
 });
+
 
 export default OtherUserProfileScreen;
 
-
-
-
-     
