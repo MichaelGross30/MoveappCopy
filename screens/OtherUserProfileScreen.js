@@ -110,7 +110,7 @@ const OtherUserProfileScreen = () => {
       </View>
     );
   }
-
+//Need to make it so clicking bell makes that user no longer able to see when you are looking for a MOVE
   return (
     <View style={styles.container}>
       {/* Top Navigation Bar */}
@@ -131,9 +131,10 @@ const OtherUserProfileScreen = () => {
       {/* Profile Header */}
       <View style={styles.profileHeader}>
         <Image source={{ uri: userData.profilePicture || 'https://via.placeholder.com/100' }} style={styles.profileImage} />
-        <Text style={styles.username}>{userData.username}</Text>
+        <Text style={styles.username}>{userData.name}</Text>
         <Text style={styles.university}>{userData.university}</Text>
-        <Text style={styles.description}>{userData.description || 'Looking for a Move'}</Text>
+        <Text style={styles.description}>{userData.bio}</Text>
+        <Text style={styles.LookingForMove}>Looking For A Move</Text>
       </View>
 
       {/* Friend Button Section */}
@@ -151,10 +152,12 @@ const OtherUserProfileScreen = () => {
           <Text style={styles.removeFriendText}>Remove Friend</Text>
         </TouchableOpacity>
       )}
-
+      {/* Bookmark Picture Title */}
+      <View style={styles.bookmarkTitle}>
+        <Text style={styles.bookmarkTitle}>Bookmark Pictures</Text>
+      </View>
       {/* Bookmarked Pictures Section */}
       <ScrollView contentContainerStyle={styles.bookmarkContainer}>
-        <Text style={styles.bookmarkTitle}>Bookmarked Pictures</Text>
         <View style={styles.imagesRow}>
           {userData.bookmarkedPhotos?.map((uri, index) => (
             <Image key={index} source={{ uri }} style={styles.bookmarkImage} />
@@ -170,18 +173,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 20,
+    paddingTop: 50,
+    
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    
   },
   rightIcons: {
     flexDirection: 'row',
   },
   iconSpacing: {
     marginLeft: 15,
+    marginRight: 15,
   },
   profileHeader: {
     alignItems: 'center',
@@ -208,6 +215,11 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
     marginBottom: 10,
+  },
+  LookingForMove: {
+    fontSize: 14,
+    color: 'green',
+    textAlign: 'center',
   },
   addFriendButton: {
     backgroundColor: '#FFA500',
